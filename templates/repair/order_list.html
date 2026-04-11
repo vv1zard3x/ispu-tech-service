@@ -4,10 +4,10 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h1 class="page-title">Заявки на ремонт</h1>
-        <p class="muted">Фильтруйте и быстро находите нужные заказы.</p>
+        <h1 class="page-title">{{ page_title|default:"Заявки на ремонт" }}</h1>
+        <p class="muted">{{ page_subtitle|default:"Фильтруйте и быстро находите нужные заказы." }}</p>
     </div>
-    {% if user|has_role:"manager" %}
+    {% if user|has_role:"manager" and not my_mode %}
         <a class="btn btn-primary" href="{% url 'repair:order-create' %}">Новая заявка</a>
     {% endif %}
 </div>
@@ -33,6 +33,15 @@
     <p style="align-self:end;">
         <button class="btn" type="submit">Применить фильтр</button>
     </p>
+    {% if my_mode %}
+        <p style="align-self:end;">
+            <a class="btn" href="{% url 'repair:order-list' %}">Все заявки</a>
+        </p>
+    {% else %}
+        <p style="align-self:end;">
+            <a class="btn" href="{% url 'repair:my-order-list' %}">Перейти в "Мои заявки"</a>
+        </p>
+    {% endif %}
 </form>
 
 <div class="table-wrap spacer">

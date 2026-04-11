@@ -32,13 +32,40 @@ from .services import (
 )
 
 
+def build_my_orders_queryset(user):
+    queryset = WorkOrder.objects.select_related("customer", "device", "assigned_to")
+    if user.is_superuser:
+        return queryset
+
+    role_filters = Q(pk__in=[])
+    if user.groups.filter(name="manager").exists():
+        role_filters |= Q(
+            status__in=[
+                WorkOrderStatus.NEW,
+                WorkOrderStatus.ASSIGNED,
+                WorkOrderStatus.AWAITING_APPROVAL,
+                WorkOrderStatus.COMPLETED,
+                WorkOrderStatus.REJECTED,
+            ]
+        )
+    if user.groups.filter(name="technician").exists():
+        role_filters |= Q(
+            assigned_to=user,
+            status__in=[WorkOrderStatus.ASSIGNED, WorkOrderStatus.IN_PROGRESS],
+        )
+    if user.groups.filter(name="warehouse").exists():
+        role_filters |= Q(status=WorkOrderStatus.APPROVED)
+
+    return queryset.filter(role_filters)
+
+
 @login_required
 def dashboard(request: HttpRequest) -> HttpResponse:
-    orders = WorkOrder.objects.select_related("customer", "assigned_to").order_by("-created_at")[:8]
+    my_orders = build_my_orders_queryset(request.user).order_by("-updated_at")[:8]
     context = {
-        "orders": orders,
-        "overdue_count": sum(1 for order in orders if order.is_overdue),
-        "awaiting_approval_count": WorkOrder.objects.filter(
+        "orders": my_orders,
+        "overdue_count": sum(1 for order in my_orders if order.is_overdue),
+        "awaiting_approval_count": build_my_orders_queryset(request.user).filter(
             status=WorkOrderStatus.AWAITING_APPROVAL
         ).count(),
     }
@@ -65,7 +92,44 @@ def order_list(request: HttpRequest) -> HttpResponse:
     return render(
         request,
         "repair/order_list.html",
-        {"orders": queryset.order_by("-received_at"), "statuses": WorkOrderStatus.choices},
+        {
+            "orders": queryset.order_by("-received_at"),
+            "statuses": WorkOrderStatus.choices,
+            "my_mode": False,
+            "page_title": "Заявки на ремонт",
+            "page_subtitle": "Фильтруйте и быстро находите нужные заказы.",
+        },
+    )
+
+
+@login_required
+def my_order_list(request: HttpRequest) -> HttpResponse:
+    queryset = build_my_orders_queryset(request.user)
+    status = request.GET.get("status")
+    technician = request.GET.get("technician")
+    query = request.GET.get("q")
+
+    if status:
+        queryset = queryset.filter(status=status)
+    if technician:
+        queryset = queryset.filter(assigned_to__username__icontains=technician)
+    if query:
+        queryset = queryset.filter(
+            Q(number__icontains=query)
+            | Q(customer__name__icontains=query)
+            | Q(device__model__icontains=query)
+        )
+
+    return render(
+        request,
+        "repair/order_list.html",
+        {
+            "orders": queryset.order_by("-received_at"),
+            "statuses": WorkOrderStatus.choices,
+            "my_mode": True,
+            "page_title": "Мои заявки",
+            "page_subtitle": "Показаны заявки, за которые вы отвечаете по вашей роли.",
+        },
     )
 
 

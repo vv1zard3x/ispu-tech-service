@@ -7,6 +7,7 @@ app_name = "repair"
 urlpatterns = [
     path("", views.dashboard, name="dashboard"),
     path("orders/", views.order_list, name="order-list"),
+    path("orders/my/", views.my_order_list, name="my-order-list"),
     path("orders/new/", views.order_create, name="order-create"),
     path("orders/<int:pk>/", views.order_detail, name="order-detail"),
     path("orders/<int:pk>/assign/", views.assign_order, name="order-assign"),
