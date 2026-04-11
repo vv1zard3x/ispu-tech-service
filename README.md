@@ -78,7 +78,9 @@ docker compose up -d --build
 - `Dockerfile` — сборка Django + Gunicorn.
 - `docker-compose.yml` — запуск контейнера, порт `8000:8000`.
 - `.env.example` — пример переменных окружения.
+- SQLite хранится в `./data/db.sqlite3` (через `SQLITE_PATH`).
 
 ### Важно
 - В `DJANGO_ALLOWED_HOSTS` и `DJANGO_CSRF_TRUSTED_ORIGINS` укажите ваш реальный домен.
 - Для HTTPS (через reverse proxy) добавьте `https://...` версии домена в `DJANGO_CSRF_TRUSTED_ORIGINS`.
+- Если ранее использовался bind `./db.sqlite3:/app/db.sqlite3`, удалите ошибочно созданную директорию/файл `db.sqlite3` на сервере и переходите на `./data:/app/data`.
