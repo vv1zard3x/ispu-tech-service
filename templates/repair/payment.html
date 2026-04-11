@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Оплата{% endblock %}
+{% block content %}
+<h1 class="page-title">Оплата по заявке №{{ order.number }}</h1>
+<p class="muted">Финальный шаг. После оплаты заявка будет закрыта.</p>
+{% if order.status == "rejected" %}
+    <p>К оплате (только диагностика): <span class="badge badge-orange">{{ order.diagnosis_fee }} руб.</span></p>
+{% elif order.status == "completed" %}
+    <p>К оплате (полный ремонт): <span class="badge badge-green">{{ order.full_repair_total }} руб.</span></p>
+{% else %}
+    <p>Оплата пока недоступна для текущего статуса.</p>
+{% endif %}
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Принять оплату</button>
+        <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Назад</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Согласование{% endblock %}
+{% block content %}
+<h1 class="page-title">Согласование стоимости</h1>
+<p class="muted">Заявка №{{ order.number }}. Подтвердите итог после общения с заказчиком.</p>
+<p><strong>Рассчитанная стоимость ремонта:</strong> <span class="badge badge-orange">{{ order.full_repair_total }} руб.</span></p>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Сохранить решение</button>
+        <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Назад</a>
+    </div>
+</form>
+{% endblock %}

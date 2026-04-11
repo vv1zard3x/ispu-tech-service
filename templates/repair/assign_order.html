@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Назначение исполнителя{% endblock %}
+{% block content %}
+<h1 class="page-title">Назначение исполнителя</h1>
+<p class="muted">Заявка №{{ order.number }}. Выберите специалиста из роли technician.</p>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Назначить</button>
+        <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Назад</a>
+    </div>
+</form>
+{% endblock %}
