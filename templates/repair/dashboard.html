@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load repair_permissions %}
+{% block title %}Дашборд{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Дашборд сервисного центра</h1>
+        <p class="muted">Оперативная сводка по заявкам и срокам.</p>
+    </div>
+    {% if user|has_any_role:"manager,technician,warehouse" %}
+        <div class="btn-row">
+            {% if user|has_role:"manager" %}
+                <a class="btn btn-primary" href="{% url 'repair:order-create' %}">Новая заявка</a>
+            {% endif %}
+            <a class="btn" href="{% url 'repair:order-list' %}">Все заявки</a>
+        </div>
+    {% endif %}
+</div>
+
+<div class="stat-grid">
+    <article class="stat-card">
+        <div class="stat-label">Ожидают согласования</div>
+        <div class="stat-value">{{ awaiting_approval_count }}</div>
+    </article>
+    <article class="stat-card">
+        <div class="stat-label">Просрочено по срокам</div>
+        <div class="stat-value">{{ overdue_count }}</div>
+    </article>
+</div>
+
+<h2>Последние заявки</h2>
+<div class="table-wrap">
+    <table>
+        <thead>
+        <tr><th>№</th><th>Клиент</th><th>Исполнитель</th><th>Статус</th><th>Действие</th></tr>
+        </thead>
+        <tbody>
+        {% for order in orders %}
+            <tr>
+                <td>{{ order.number }}</td>
+                <td>{{ order.customer.name }}</td>
+                <td>{{ order.assigned_to|default:"-" }}</td>
+                <td><span class="badge badge-blue">{{ order.get_status_display }}</span></td>
+                <td><a class="btn" href="{% url 'repair:order-detail' order.pk %}">Открыть</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">Пока нет заявок.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

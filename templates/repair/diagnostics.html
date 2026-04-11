@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Диагностика заявки{% endblock %}
+{% block content %}
+<h1 class="page-title">Диагностика заявки №{{ order.number }}</h1>
+<p class="muted">Заполните вывод диагностики, затем добавьте работы и требуемые детали.</p>
+<form method="post">
+    {% csrf_token %}
+    <div class="form-panel">
+        <p>
+            {{ d_form.findings.label_tag }}
+            {{ d_form.findings }}
+            <span class="field-errors">{{ d_form.findings.errors }}</span>
+        </p>
+    </div>
+
+    <h2 class="section-title">Работы</h2>
+    <div class="formset" data-formset data-prefix="{{ work_formset.prefix }}">
+        {{ work_formset.management_form }}
+        <div class="formset-items" data-formset-items>
+            {% for form in work_formset %}
+                <div class="formset-item{% if form.DELETE.value %} is-hidden{% endif %}">
+                    {{ form.id }}
+                    {% if form.DELETE %}{{ form.DELETE.as_hidden }}{% endif %}
+                    <div class="formset-item-header">
+                        <span class="formset-item-title">Работа {{ forloop.counter }}</span>
+                        <button class="btn btn-danger" type="button" data-formset-remove>Удалить</button>
+                    </div>
+                    <div class="form-grid">
+                        <p>
+                            {{ form.title.label_tag }}
+                            {{ form.title }}
+                            <span class="field-errors">{{ form.title.errors }}</span>
+                        </p>
+                        <p>
+                            {{ form.labor_cost.label_tag }}
+                            {{ form.labor_cost }}
+                            <span class="field-errors">{{ form.labor_cost.errors }}</span>
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <button class="btn btn-secondary" type="button" data-formset-add>+ Добавить работу</button>
+        <template>
+            {{ work_formset.empty_form.id }}
+            {% if work_formset.empty_form.DELETE %}{{ work_formset.empty_form.DELETE.as_hidden }}{% endif %}
+            <div class="formset-item-header">
+                <span class="formset-item-title">Новая работа</span>
+                <button class="btn btn-danger" type="button" data-formset-remove>Удалить</button>
+            </div>
+            <div class="form-grid">
+                <p>
+                    {{ work_formset.empty_form.title.label_tag }}
+                    {{ work_formset.empty_form.title }}
+                </p>
+                <p>
+                    {{ work_formset.empty_form.labor_cost.label_tag }}
+                    {{ work_formset.empty_form.labor_cost }}
+                </p>
+            </div>
+        </template>
+    </div>
+
+    <h2 class="section-title">Детали</h2>
+    <div class="formset" data-formset data-prefix="{{ part_formset.prefix }}">
+        {{ part_formset.management_form }}
+        <div class="formset-items" data-formset-items>
+            {% for form in part_formset %}
+                <div class="formset-item{% if form.DELETE.value %} is-hidden{% endif %}">
+                    {{ form.id }}
+                    {% if form.DELETE %}{{ form.DELETE.as_hidden }}{% endif %}
+                    <div class="formset-item-header">
+                        <span class="formset-item-title">Деталь {{ forloop.counter }}</span>
+                        <button class="btn btn-danger" type="button" data-formset-remove>Удалить</button>
+                    </div>
+                    <div class="form-grid">
+                        <p>
+                            {{ form.part.label_tag }}
+                            {{ form.part }}
+                            <span class="field-errors">{{ form.part.errors }}</span>
+                        </p>
+                        <p>
+                            {{ form.quantity.label_tag }}
+                            {{ form.quantity }}
+                            <span class="field-errors">{{ form.quantity.errors }}</span>
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <button class="btn btn-secondary" type="button" data-formset-add>+ Добавить деталь</button>
+        <template>
+            {{ part_formset.empty_form.id }}
+            {% if part_formset.empty_form.DELETE %}{{ part_formset.empty_form.DELETE.as_hidden }}{% endif %}
+            <div class="formset-item-header">
+                <span class="formset-item-title">Новая деталь</span>
+                <button class="btn btn-danger" type="button" data-formset-remove>Удалить</button>
+            </div>
+            <div class="form-grid">
+                <p>
+                    {{ part_formset.empty_form.part.label_tag }}
+                    {{ part_formset.empty_form.part }}
+                </p>
+                <p>
+                    {{ part_formset.empty_form.quantity.label_tag }}
+                    {{ part_formset.empty_form.quantity }}
+                </p>
+            </div>
+        </template>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Сохранить диагностику</button>
+        <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Назад</a>
+    </div>
+</form>
+{% endblock %}

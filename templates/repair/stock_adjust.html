@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Корректировка склада{% endblock %}
+{% block content %}
+<h1 class="page-title">Корректировка остатка</h1>
+<p class="muted">Управляйте складом в одном окне: корректировка остатков и добавление новых комплектующих.</p>
+<div class="form-grid">
+    <div class="form-panel">
+        <h2 class="section-title">Изменить остаток</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="adjust">
+            <p>
+                {{ form.part.label_tag }}
+                {{ form.part }}
+                <span class="field-errors">{{ form.part.errors }}</span>
+            </p>
+            <p>
+                {{ form.quantity.label_tag }}
+                {{ form.quantity }}
+                <span class="field-errors">{{ form.quantity.errors }}</span>
+            </p>
+            <div class="btn-row">
+                <button class="btn btn-primary" type="submit">Сохранить остаток</button>
+            </div>
+        </form>
+    </div>
+    <div class="form-panel">
+        <h2 class="section-title">Добавить комплектующую</h2>
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="create_part">
+            <p>
+                {{ create_part_form.name.label_tag }}
+                {{ create_part_form.name }}
+                <span class="field-errors">{{ create_part_form.name.errors }}</span>
+            </p>
+            <p>
+                {{ create_part_form.sku.label_tag }}
+                {{ create_part_form.sku }}
+                <span class="field-errors">{{ create_part_form.sku.errors }}</span>
+            </p>
+            <p>
+                {{ create_part_form.purchase_price.label_tag }}
+                {{ create_part_form.purchase_price }}
+                <span class="field-errors">{{ create_part_form.purchase_price.errors }}</span>
+            </p>
+            <p>
+                {{ create_part_form.sale_price.label_tag }}
+                {{ create_part_form.sale_price }}
+                <span class="field-errors">{{ create_part_form.sale_price.errors }}</span>
+            </p>
+            <p>
+                {{ create_part_form.quantity_on_hand.label_tag }}
+                {{ create_part_form.quantity_on_hand }}
+                <span class="field-errors">{{ create_part_form.quantity_on_hand.errors }}</span>
+            </p>
+            <div class="btn-row">
+                <button class="btn btn-primary" type="submit">Добавить комплектующую</button>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="spacer">
+    <a class="btn" href="{% url 'repair:stock-list' %}">Назад</a>
+</div>
+{% endblock %}

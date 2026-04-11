@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Резерв деталей{% endblock %}
+{% block content %}
+<h1 class="page-title">Резерв деталей по заявке №{{ order.number }}</h1>
+<p class="muted">Укажите цену продажи для каждой комплектующей и подтвердите резерв.</p>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="formset">
+        {{ formset.management_form }}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr><th>Комплектующая</th><th>Количество</th><th>Цена продажи</th></tr>
+                </thead>
+                <tbody>
+                {% for form in formset %}
+                    <tr>
+                        <td>
+                            {{ form.line_id }}
+                            {{ form.part_name }}
+                            <span class="field-errors">{{ form.part_name.errors }}{{ form.line_id.errors }}</span>
+                        </td>
+                        <td>
+                            {{ form.quantity }}
+                            <span class="field-errors">{{ form.quantity.errors }}</span>
+                        </td>
+                        <td>
+                            {{ form.sale_unit_price }}
+                            <span class="field-errors">{{ form.sale_unit_price.errors }}</span>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="btn-row">
+        <button type="submit" class="btn btn-primary">Подтвердить резерв</button>
+        <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Назад</a>
+    </div>
+</form>
+{% endblock %}

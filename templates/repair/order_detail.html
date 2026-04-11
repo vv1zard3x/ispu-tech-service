@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% load repair_permissions %}
+{% block title %}Заявка {{ order.number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Заявка №{{ order.number }}</h1>
+        <p class="muted">Полная карточка заказа и операции по этапам ремонта.</p>
+    </div>
+    <span class="badge badge-blue">{{ order.get_status_display }}</span>
+</div>
+
+<div class="form-grid">
+    <p><strong>Клиент:</strong><br>{{ order.customer.name }}<br><span class="muted">{{ order.customer.phone }}</span></p>
+    <p><strong>Устройство:</strong><br>{{ order.device }}</p>
+    <p><strong>Исполнитель:</strong><br>{{ order.assigned_to|default:"не назначен" }}</p>
+    <p><strong>Плановый срок:</strong><br>{{ order.planned_deadline|default:"не задан" }}</p>
+    <p><strong>Диагностика:</strong><br>{{ order.diagnosis_fee }} руб.</p>
+    <p><strong>Итог ремонта:</strong><br>{{ order.full_repair_total }} руб.</p>
+</div>
+
+<div class="btn-row spacer">
+    {% if user|has_role:"manager" and order.status == "new" %}
+        <a class="btn" href="{% url 'repair:order-assign' order.pk %}">Назначить исполнителя</a>
+    {% endif %}
+    {% if user|has_role:"technician" and order.status == "assigned" %}
+        <a class="btn" href="{% url 'repair:order-diagnostics' order.pk %}">Диагностика</a>
+    {% endif %}
+    {% if user|has_role:"manager" and order.status == "awaiting_approval" %}
+        <a class="btn" href="{% url 'repair:order-approval' order.pk %}">Согласование</a>
+    {% endif %}
+    {% if user|has_role:"warehouse" and order.status == "approved" %}
+        <a class="btn" href="{% url 'repair:order-reserve' order.pk %}">Резерв со склада</a>
+    {% endif %}
+    {% if user|has_role:"technician" and order.status == "in_progress" %}
+        <a class="btn" href="{% url 'repair:order-complete' order.pk %}">Завершить ремонт</a>
+    {% endif %}
+    {% if user|has_role:"manager" and order.status == "rejected" or user|has_role:"manager" and order.status == "completed" %}
+        <a class="btn btn-primary" href="{% url 'repair:order-payment' order.pk %}">Оплата</a>
+    {% endif %}
+</div>
+
+<h2 class="spacer">Диагностика</h2>
+<p>{% if order.diagnostic %}{{ order.diagnostic.findings }}{% else %}<span class="muted">Еще не заполнена.</span>{% endif %}</p>
+
+<h2 class="spacer">Работы</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Работа</th><th>Стоимость</th></tr></thead>
+        <tbody>
+        {% for item in order.work_items.all %}
+            <tr><td>{{ item.title }}</td><td>{{ item.labor_cost }} руб.</td></tr>
+        {% empty %}
+            <tr><td colspan="2">Нет работ.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="spacer">Детали</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Деталь</th><th>Кол-во</th><th>Оценка (закупка)</th><th>Сумма</th></tr></thead>
+        <tbody>
+        {% for line in order.part_lines.all %}
+            <tr><td>{{ line.part.name }}</td><td>{{ line.quantity }}</td><td>{{ line.unit_price }}</td><td>{{ line.total }}</td></tr>
+        {% empty %}
+            <tr><td colspan="4">Нет деталей.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="spacer">Резерв и продажная цена</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Деталь</th><th>Кол-во</th><th>Цена продажи</th><th>Сумма</th></tr></thead>
+        <tbody>
+        {% for reservation in order.part_reservations.all %}
+            <tr>
+                <td>{{ reservation.part.name }}</td>
+                <td>{{ reservation.quantity }}</td>
+                <td>{{ reservation.sale_unit_price|default:"-" }}</td>
+                <td>{{ reservation.total }}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="4">Резерв еще не оформлен.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="spacer">Оплаты</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Тип</th><th>Сумма</th><th>Дата</th></tr></thead>
+        <tbody>
+        {% for payment in order.payments.all %}
+            <tr><td>{{ payment.get_kind_display }}</td><td>{{ payment.amount }} руб.</td><td>{{ payment.paid_at|date:"d.m.Y H:i" }}</td></tr>
+        {% empty %}
+            <tr><td colspan="3">Оплаты еще нет.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

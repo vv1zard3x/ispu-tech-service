@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load repair_permissions %}
+{% block title %}Список заявок{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Заявки на ремонт</h1>
+        <p class="muted">Фильтруйте и быстро находите нужные заказы.</p>
+    </div>
+    {% if user|has_role:"manager" %}
+        <a class="btn btn-primary" href="{% url 'repair:order-create' %}">Новая заявка</a>
+    {% endif %}
+</div>
+
+<form method="get" class="form-grid">
+    <p>
+        <label for="id_q">Поиск</label>
+        <input id="id_q" type="text" name="q" placeholder="№, клиент, устройство" value="{{ request.GET.q }}">
+    </p>
+    <p>
+        <label for="id_technician">Исполнитель</label>
+        <input id="id_technician" type="text" name="technician" placeholder="Имя исполнителя" value="{{ request.GET.technician }}">
+    </p>
+    <p>
+        <label for="id_status">Статус</label>
+        <select id="id_status" name="status">
+            <option value="">Все статусы</option>
+            {% for value, label in statuses %}
+                <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </p>
+    <p style="align-self:end;">
+        <button class="btn" type="submit">Применить фильтр</button>
+    </p>
+</form>
+
+<div class="table-wrap spacer">
+    <table>
+        <thead>
+        <tr><th>№</th><th>Клиент</th><th>Устройство</th><th>Исполнитель</th><th>Статус</th><th>Срок</th></tr>
+        </thead>
+        <tbody>
+        {% for order in orders %}
+            <tr>
+                <td><a href="{% url 'repair:order-detail' order.pk %}">#{{ order.number }}</a></td>
+                <td>{{ order.customer.name }}</td>
+                <td>{{ order.device }}</td>
+                <td>{{ order.assigned_to|default:"-" }}</td>
+                <td><span class="badge badge-blue">{{ order.get_status_display }}</span></td>
+                <td>{% if order.planned_deadline %}{{ order.planned_deadline|date:"d.m.Y H:i" }}{% else %}-{% endif %}</td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6">Ничего не найдено.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

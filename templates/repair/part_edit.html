@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Редактирование комплектующей{% endblock %}
+{% block content %}
+<h1 class="page-title">Редактирование комплектующей</h1>
+<p class="muted">{{ part.name }} ({{ part.sku }})</p>
+<form method="post">
+    {% csrf_token %}
+    <div class="form-panel">
+        <p>
+            {{ form.name.label_tag }}
+            {{ form.name }}
+            <span class="field-errors">{{ form.name.errors }}</span>
+        </p>
+        <p>
+            {{ form.sku.label_tag }}
+            {{ form.sku }}
+            <span class="field-errors">{{ form.sku.errors }}</span>
+        </p>
+        <p>
+            {{ form.purchase_price.label_tag }}
+            {{ form.purchase_price }}
+            <span class="field-errors">{{ form.purchase_price.errors }}</span>
+        </p>
+        <p>
+            {{ form.sale_price.label_tag }}
+            {{ form.sale_price }}
+            <span class="field-errors">{{ form.sale_price.errors }}</span>
+        </p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Сохранить</button>
+        <a class="btn" href="{% url 'repair:stock-list' %}">Назад</a>
+    </div>
+</form>
+{% endblock %}

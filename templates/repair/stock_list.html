@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Склад{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Склад</h1>
+        <p class="muted">Контроль остатков и доступности деталей для ремонта.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'repair:stock-adjust' %}">Изменить остаток</a>
+</div>
+<div class="table-wrap">
+    <table>
+        <thead>
+        <tr><th>Артикул</th><th>Деталь</th><th>Закупочная</th><th>Продажа</th><th>Остаток</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+            <tr>
+                <td><strong>{{ item.part.sku }}</strong></td>
+                <td>{{ item.part.name }}</td>
+                <td>{{ item.part.purchase_price }} руб.</td>
+                <td>{{ item.part.sale_price }} руб.</td>
+                <td>
+                    {% if item.quantity_on_hand > 0 %}
+                        <span class="badge badge-green">{{ item.quantity_on_hand }}</span>
+                    {% else %}
+                        <span class="badge badge-red">0</span>
+                    {% endif %}
+                </td>
+                <td><a class="btn" href="{% url 'repair:part-edit' item.part.pk %}">Редактировать</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="6">Склад пока пуст.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

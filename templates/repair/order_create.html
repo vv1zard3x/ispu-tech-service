@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Новая заявка{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Создание заявки</h1>
+        <p class="muted">Заполните данные клиента и устройства для запуска процесса ремонта.</p>
+    </div>
+</div>
+<form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <h2 class="section-title">1) Клиент и устройство</h2>
+    <div class="form-panel">
+        <p>
+            {{ form.customer.label_tag }}
+            {{ form.customer }}
+            <span class="field-errors">{{ form.customer.errors }}</span>
+        </p>
+        <div class="toggle-row">
+            <input id="use_new_customer" type="checkbox" name="use_new_customer" data-toggle-target="#new_customer_block" {% if use_new_customer %}checked{% endif %}>
+            <label for="use_new_customer">Зарегистрировать нового клиента</label>
+        </div>
+        <div id="new_customer_block" class="toggle-target">
+            <div class="form-grid">
+                <p>
+                    {{ customer_form.name.label_tag }}
+                    {{ customer_form.name }}
+                    <span class="field-errors">{{ customer_form.name.errors }}</span>
+                </p>
+                <p>
+                    {{ customer_form.phone.label_tag }}
+                    {{ customer_form.phone }}
+                    <span class="field-errors">{{ customer_form.phone.errors }}</span>
+                </p>
+                <p>
+                    {{ customer_form.email.label_tag }}
+                    {{ customer_form.email }}
+                    <span class="field-errors">{{ customer_form.email.errors }}</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-panel">
+        <p>
+            {{ form.device.label_tag }}
+            {{ form.device }}
+            <span class="field-errors">{{ form.device.errors }}</span>
+        </p>
+        <div class="toggle-row">
+            <input id="use_new_device" type="checkbox" name="use_new_device" data-toggle-target="#new_device_block" {% if use_new_device %}checked{% endif %}>
+            <label for="use_new_device">Добавить новое устройство (не из списка)</label>
+        </div>
+        <div id="new_device_block" class="toggle-target">
+            <div class="form-grid">
+                <p>
+                    {{ device_form.brand.label_tag }}
+                    {{ device_form.brand }}
+                    <span class="field-errors">{{ device_form.brand.errors }}</span>
+                </p>
+                <p>
+                    {{ device_form.model.label_tag }}
+                    {{ device_form.model }}
+                    <span class="field-errors">{{ device_form.model.errors }}</span>
+                </p>
+                <p>
+                    {{ device_form.serial_number.label_tag }}
+                    {{ device_form.serial_number }}
+                    <span class="field-errors">{{ device_form.serial_number.errors }}</span>
+                </p>
+            </div>
+            <p>
+                {{ device_form.issue_description.label_tag }}
+                {{ device_form.issue_description }}
+                <span class="field-errors">{{ device_form.issue_description.errors }}</span>
+            </p>
+        </div>
+    </div>
+
+    <h2 class="section-title">2) Параметры заявки</h2>
+    <div class="form-panel">
+        <div class="form-grid">
+            <p>
+                {{ form.planned_deadline.label_tag }}
+                <span class="field-help">Сначала выберите дату, затем время дедлайна.</span>
+                <div class="datetime-modern">
+                    <div>
+                        <div class="field-title">Дата</div>
+                        {{ form.planned_deadline.subwidgets.0 }}
+                    </div>
+                    <div>
+                        <div class="field-title">Время</div>
+                        {{ form.planned_deadline.subwidgets.1 }}
+                    </div>
+                </div>
+                <span class="field-errors">{{ form.planned_deadline.errors }}</span>
+            </p>
+            <p>
+                {{ form.diagnosis_fee.label_tag }}
+                {{ form.diagnosis_fee }}
+                <span class="field-errors">{{ form.diagnosis_fee.errors }}</span>
+            </p>
+        </div>
+        <p>
+            {{ form.notes.label_tag }}
+            {{ form.notes }}
+            <span class="field-errors">{{ form.notes.errors }}</span>
+        </p>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Создать заявку</button>
+        <a class="btn" href="{% url 'repair:order-list' %}">Отмена</a>
+    </div>
+</form>
+{% endblock %}
