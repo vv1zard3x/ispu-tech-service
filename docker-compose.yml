@@ -1,0 +1,12 @@
+services:
+  web:
+    build: .
+    container_name: repair-4-48-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./db.sqlite3:/app/db.sqlite3
+      - ./staticfiles:/app/staticfiles

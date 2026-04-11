@@ -55,3 +55,30 @@ uv run python manage.py test
 
 ## Отчет
 Подробный отчет находится в файле `report/REPORT.md`.
+
+## Деплой на сервер (Docker Compose, порт 8080)
+
+Для домена `vv1zard3x.com` и запуска на `8080`:
+
+1. Подготовьте env:
+```bash
+cp .env.example .env
+```
+
+2. Запустите сервис:
+```bash
+docker compose up -d --build
+```
+
+3. Проверка:
+- приложение: `http://vv1zard3x.com:8080`
+- локально на сервере: `http://127.0.0.1:8080`
+
+### Что используется
+- `Dockerfile` — сборка Django + Gunicorn.
+- `docker-compose.yml` — запуск контейнера, порт `8080:8080`.
+- `.env.example` — пример переменных окружения.
+
+### Важно
+- В `DJANGO_ALLOWED_HOSTS` и `DJANGO_CSRF_TRUSTED_ORIGINS` укажите ваш реальный домен.
+- Для HTTPS (через reverse proxy) добавьте `https://...` версии домена в `DJANGO_CSRF_TRUSTED_ORIGINS`.
