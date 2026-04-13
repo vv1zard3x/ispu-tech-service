@@ -19,12 +19,14 @@ services:
       - "traefik.http.routers.repair-web.entrypoints=websecure"
       - "traefik.http.routers.repair-web.tls=true"
       - "traefik.http.routers.repair-web.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.repair-web.middlewares=errors@file"
+      - "traefik.http.routers.repair-web.middlewares=errors"
 
       # HTTP → HTTPS redirect
       - "traefik.http.routers.repair-web-http.rule=Host(`service.vv1zard3x.ru`)"
       - "traefik.http.routers.repair-web-http.entrypoints=web"
-      - "traefik.http.routers.repair-web-http.middlewares=https-redirect@file"
+      - "traefik.http.routers.repair-web-http.middlewares=https-redirect@docker"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
 
       - "traefik.http.services.repair-web.loadbalancer.server.port=8000"
 
