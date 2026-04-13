@@ -1,0 +1,33 @@
+services:
+  web:
+    build: .
+    container_name: repair-4-48-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./staticfiles:/app/staticfiles
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+
+      # HTTPS router
+      - "traefik.http.routers.repair-web.rule=Host(`service.vv1zard3x.ru`)"
+      - "traefik.http.routers.repair-web.entrypoints=websecure"
+      - "traefik.http.routers.repair-web.tls=true"
+      - "traefik.http.routers.repair-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.repair-web.middlewares=errors@file"
+
+      # HTTP → HTTPS redirect
+      - "traefik.http.routers.repair-web-http.rule=Host(`service.vv1zard3x.ru`)"
+      - "traefik.http.routers.repair-web-http.entrypoints=web"
+      - "traefik.http.routers.repair-web-http.middlewares=https-redirect@file"
+
+      - "traefik.http.services.repair-web.loadbalancer.server.port=8000"
+
+networks:
+  proxy:
+    external: true
