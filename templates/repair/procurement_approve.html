@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Согласование закупки{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Согласование закупки — заявка №{{ order.number }}</h1>
+        <p class="muted">Устройство: {{ order.device_model }} (категория: {{ order.device_model.category.name }}).</p>
+    </div>
+    <a class="btn" href="{% url 'repair:order-detail' order.pk %}">← К заявке</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="approve">
+    {{ formset.management_form }}
+
+    {% for form in formset %}
+        {{ form.request_id }}
+        <div class="form-panel">
+            <h3 class="section-title" style="margin-top: 0;">{{ form.name.value }} × {{ form.quantity.value }}</h3>
+            {% if form.note.value %}<p class="muted">{{ form.note.value }}</p>{% endif %}
+            <div class="form-grid">
+                <p>
+                    {{ form.sku.label_tag }}
+                    {{ form.sku }}
+                    <span class="field-help">Оставьте пустым — сгенерируется автоматически.</span>
+                    <span class="field-errors">{{ form.sku.errors }}</span>
+                </p>
+                <p>
+                    {{ form.purchase_price.label_tag }}
+                    {{ form.purchase_price }}
+                    <span class="field-errors">{{ form.purchase_price.errors }}</span>
+                </p>
+                <p>
+                    {{ form.sale_price.label_tag }}
+                    {{ form.sale_price }}
+                    <span class="field-errors">{{ form.sale_price.errors }}</span>
+                </p>
+                <p>
+                    {{ form.stock_qty.label_tag }}
+                    {{ form.stock_qty }}
+                    <span class="field-help">{{ form.stock_qty.help_text }}</span>
+                    <span class="field-errors">{{ form.stock_qty.errors }}</span>
+                </p>
+            </div>
+        </div>
+    {% endfor %}
+
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Одобрить всё и передать клиенту</button>
+    </div>
+</form>
+
+<h2 class="section-title">Отказать в закупке</h2>
+<p class="muted">Если нужных деталей нет и не будет — отклоните запрос. Заявка вернётся менеджеру для решения «не починим».</p>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="reject">
+    <div class="form-panel">
+        <p>
+            {{ reject_form.reason.label_tag }}
+            {{ reject_form.reason }}
+            <span class="field-errors">{{ reject_form.reason.errors }}</span>
+        </p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-danger" type="submit">Отклонить закупку</button>
+    </div>
+</form>
+{% endblock %}

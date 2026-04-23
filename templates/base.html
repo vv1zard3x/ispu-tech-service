@@ -290,6 +290,21 @@
             display: none !important;
         }
 
+        select[multiple] {
+            min-height: 120px;
+            background-image: none;
+            padding-right: 12px;
+        }
+        .checkbox-inline {
+            width: auto;
+            margin-right: 6px;
+        }
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary);
+        }
+
         .table-wrap {
             width: 100%;
             overflow: auto;
@@ -360,14 +375,18 @@
             {% endif %}
             {% if user|has_role:"warehouse" %}
                 <a class="nav-link" href="{% url 'repair:stock-list' %}">Склад</a>
+                <a class="nav-link" href="{% url 'repair:procurement-queue' %}">Закупка</a>
+            {% endif %}
+            {% if user.is_superuser or user.is_staff %}
+                <a class="nav-link" href="{% url 'repair:user-list' %}">Пользователи</a>
             {% endif %}
             {% if user.is_superuser %}
-                <a class="nav-link" href="/admin/">Админка</a>
+                <a class="nav-link" href="/admin/">Django admin</a>
             {% endif %}
         </div>
         <div class="userbar">
             {% if user.is_authenticated %}
-                <span>{{ user.username }}</span>
+                <a class="nav-link" href="{% url 'repair:profile' %}">{{ user.username }}</a>
                 <form class="logout-form" method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="nav-link nav-button">Выход</button>

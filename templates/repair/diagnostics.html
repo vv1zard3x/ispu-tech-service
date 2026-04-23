@@ -1,8 +1,17 @@
 {% extends "base.html" %}
 {% block title %}Диагностика заявки{% endblock %}
 {% block content %}
-<h1 class="page-title">Диагностика заявки №{{ order.number }}</h1>
-<p class="muted">Заполните вывод диагностики, затем добавьте работы и требуемые детали.</p>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Диагностика заявки №{{ order.number }}</h1>
+        <p class="muted">
+            Устройство: <strong>{{ order.device_model }}</strong>
+            {% if order.device_model.category %}(категория: {{ order.device_model.category.name }}){% endif %}.
+            Детали в выпадающих списках отфильтрованы под это устройство ({{ parts_available_count }} доступно).
+        </p>
+    </div>
+</div>
+
 <form method="post">
     {% csrf_token %}
     <div class="form-panel">
@@ -14,7 +23,11 @@
     </div>
 
     <h2 class="section-title">Работы</h2>
-    <div class="formset" data-formset data-prefix="{{ work_formset.prefix }}">
+    <p class="muted" style="margin-top: -4px;">Выберите типовую работу из справочника или введите свою. Новую можно сохранить в справочник для следующих заявок.</p>
+    <datalist id="works-catalog-list">
+        {% for item in works_catalog %}<option value="{{ item.title }}"></option>{% endfor %}
+    </datalist>
+    <div class="formset" data-formset data-prefix="{{ work_formset.prefix }}" data-works-formset>
         {{ work_formset.management_form }}
         <div class="formset-items" data-formset-items>
             {% for form in work_formset %}
@@ -27,6 +40,10 @@
                     </div>
                     <div class="form-grid">
                         <p>
+                            {{ form.catalog_item.label_tag }}
+                            {{ form.catalog_item }}
+                        </p>
+                        <p>
                             {{ form.title.label_tag }}
                             {{ form.title }}
                             <span class="field-errors">{{ form.title.errors }}</span>
@@ -37,6 +54,10 @@
                             <span class="field-errors">{{ form.labor_cost.errors }}</span>
                         </p>
                     </div>
+                    <p class="toggle-row" style="margin: 0;">
+                        {{ form.save_to_catalog }}
+                        {{ form.save_to_catalog.label_tag }}
+                    </p>
                 </div>
             {% endfor %}
         </div>
@@ -50,6 +71,10 @@
             </div>
             <div class="form-grid">
                 <p>
+                    {{ work_formset.empty_form.catalog_item.label_tag }}
+                    {{ work_formset.empty_form.catalog_item }}
+                </p>
+                <p>
                     {{ work_formset.empty_form.title.label_tag }}
                     {{ work_formset.empty_form.title }}
                 </p>
@@ -58,10 +83,15 @@
                     {{ work_formset.empty_form.labor_cost }}
                 </p>
             </div>
+            <p class="toggle-row" style="margin: 0;">
+                {{ work_formset.empty_form.save_to_catalog }}
+                {{ work_formset.empty_form.save_to_catalog.label_tag }}
+            </p>
         </template>
     </div>
 
     <h2 class="section-title">Детали</h2>
+    <p class="muted" style="margin-top: -4px;">Показаны только детали, совместимые с устройством заявки.</p>
     <div class="formset" data-formset data-prefix="{{ part_formset.prefix }}">
         {{ part_formset.management_form }}
         <div class="formset-items" data-formset-items>
@@ -109,9 +139,124 @@
         </template>
     </div>
 
+    <h2 class="section-title">Нужно закупить</h2>
+    <p class="muted" style="margin-top: -4px;">Если нужной детали нет на складе — добавьте сюда. Склад согласует цены и создаст номенклатуру. Заявка не вернётся на согласование клиенту, пока склад не отработает эти позиции.</p>
+    <div class="formset" data-formset data-prefix="{{ proc_formset.prefix }}">
+        {{ proc_formset.management_form }}
+        <div class="formset-items" data-formset-items>
+            {% for form in proc_formset %}
+                <div class="formset-item{% if form.DELETE.value %} is-hidden{% endif %}">
+                    {% if form.DELETE %}{{ form.DELETE.as_hidden }}{% endif %}
+                    <div class="formset-item-header">
+                        <span class="formset-item-title">Позиция {{ forloop.counter }}</span>
+                        <button class="btn btn-danger" type="button" data-formset-remove>Удалить</button>
+                    </div>
+                    <div class="form-grid">
+                        <p>
+                            {{ form.name.label_tag }}
+                            {{ form.name }}
+                            <span class="field-errors">{{ form.name.errors }}</span>
+                        </p>
+                        <p>
+                            {{ form.quantity.label_tag }}
+                            {{ form.quantity }}
+                            <span class="field-errors">{{ form.quantity.errors }}</span>
+                        </p>
+                    </div>
+                    <p>
+                        {{ form.note.label_tag }}
+                        {{ form.note }}
+                        <span class="field-errors">{{ form.note.errors }}</span>
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+        <button class="btn btn-secondary" type="button" data-formset-add>+ Добавить позицию на закупку</button>
+        <template>
+            {% if proc_formset.empty_form.DELETE %}{{ proc_formset.empty_form.DELETE.as_hidden }}{% endif %}
+            <div class="formset-item-header">
+                <span class="formset-item-title">Новая позиция</span>
+                <button class="btn btn-danger" type="button" data-formset-remove>Удалить</button>
+            </div>
+            <div class="form-grid">
+                <p>
+                    {{ proc_formset.empty_form.name.label_tag }}
+                    {{ proc_formset.empty_form.name }}
+                </p>
+                <p>
+                    {{ proc_formset.empty_form.quantity.label_tag }}
+                    {{ proc_formset.empty_form.quantity }}
+                </p>
+            </div>
+            <p>
+                {{ proc_formset.empty_form.note.label_tag }}
+                {{ proc_formset.empty_form.note }}
+            </p>
+        </template>
+    </div>
+
     <div class="btn-row">
         <button class="btn btn-primary" type="submit">Сохранить диагностику</button>
         <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Назад</a>
     </div>
 </form>
+
+{{ works_catalog|json_script:"works-catalog-data" }}
+
+<script>
+(function () {
+    const catalog = JSON.parse(document.getElementById("works-catalog-data").textContent);
+    const byTitle = new Map(catalog.map(w => [w.title, w]));
+
+    function wireCatalogItem(scope) {
+        const titleInput = scope.querySelector('input[name$="-title"]');
+        const costInput = scope.querySelector('input[name$="-labor_cost"]');
+        const catalogSelect = scope.querySelector('select[name$="-catalog_item"]');
+        if (titleInput) {
+            const dl = document.getElementById("works-catalog-list");
+            if (dl && !dl.options.length) {
+                catalog.forEach(w => {
+                    const opt = document.createElement("option");
+                    opt.value = w.title;
+                    dl.appendChild(opt);
+                });
+            }
+            titleInput.setAttribute("list", "works-catalog-list");
+            titleInput.addEventListener("change", () => {
+                const hit = byTitle.get(titleInput.value.trim());
+                if (hit && costInput && !costInput.value) {
+                    costInput.value = hit.default_labor_cost;
+                }
+            });
+        }
+        if (catalogSelect && titleInput) {
+            catalogSelect.addEventListener("change", () => {
+                const opt = catalogSelect.options[catalogSelect.selectedIndex];
+                if (!opt || !opt.value) return;
+                const title = opt.textContent.trim();
+                titleInput.value = title;
+                const hit = byTitle.get(title);
+                if (hit && costInput) {
+                    costInput.value = hit.default_labor_cost;
+                }
+            });
+        }
+    }
+
+    document.querySelectorAll("[data-works-formset] .formset-item").forEach(wireCatalogItem);
+
+    const observer = new MutationObserver(mutations => {
+        mutations.forEach(m => {
+            m.addedNodes.forEach(node => {
+                if (node.nodeType === 1 && node.classList.contains("formset-item")) {
+                    wireCatalogItem(node);
+                }
+            });
+        });
+    });
+    document.querySelectorAll("[data-works-formset] [data-formset-items]").forEach(el => {
+        observer.observe(el, { childList: true });
+    });
+})();
+</script>
 {% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Не починим{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Невозможно починить — заявка №{{ order.number }}</h1>
+        <p class="muted">Склад отказался закупать необходимые детали. Пометьте заявку как неремонтопригодную, чтобы продолжить закрытие.</p>
+    </div>
+    <a class="btn" href="{% url 'repair:order-detail' order.pk %}">← К заявке</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-panel">
+        <p>
+            {{ form.reason.label_tag }}
+            {{ form.reason }}
+            <span class="field-help">Короткий комментарий, что именно не удалось.</span>
+            <span class="field-errors">{{ form.reason.errors }}</span>
+        </p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-danger" type="submit">Пометить как не ремонтопригодную</button>
+        <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Отмена</a>
+    </div>
+</form>
+{% endblock %}

@@ -1,49 +1,27 @@
 from django.contrib import admin
-
-from .models import (
-    Customer,
-    Device,
-    DiagnosticResult,
-    OrderPartLine,
-    OrderStatusHistory,
-    Part,
-    PartReservation,
-    PartUsage,
-    Payment,
-    StockItem,
-    WorkItem,
-    WorkOrder,
-)
+from django.contrib.auth.admin import GroupAdmin as DjangoGroupAdmin
+from django.contrib.auth.admin import UserAdmin as DjangoUserAdmin
+from django.contrib.auth.models import Group, User
 
 
-@admin.register(Customer)
-class CustomerAdmin(admin.ModelAdmin):
-    list_display = ("name", "phone", "email")
-    search_fields = ("name", "phone", "email")
+admin.site.site_header = "Ремонт 4-48 — управление"
+admin.site.site_title = "Ремонт 4-48"
+admin.site.index_title = "Пользователи и роли"
 
 
-@admin.register(Device)
-class DeviceAdmin(admin.ModelAdmin):
-    list_display = ("customer", "brand", "model", "serial_number")
-    search_fields = ("customer__name", "brand", "model", "serial_number")
+if admin.site.is_registered(User):
+    admin.site.unregister(User)
+if admin.site.is_registered(Group):
+    admin.site.unregister(Group)
 
 
-class WorkItemInline(admin.TabularInline):
-    model = WorkItem
-    extra = 0
+@admin.register(User)
+class UserAdmin(DjangoUserAdmin):
+    list_display = ("username", "get_full_name", "email", "is_active", "is_staff", "is_superuser")
+    search_fields = ("username", "first_name", "last_name", "email")
 
 
-class PartLineInline(admin.TabularInline):
-    model = OrderPartLine
-    extra = 0
-
-
-@admin.register(WorkOrder)
-class WorkOrderAdmin(admin.ModelAdmin):
-    list_display = ("number", "customer", "status", "assigned_to", "planned_deadline", "completed_at")
-    list_filter = ("status", "assigned_to")
-    search_fields = ("number", "customer__name", "device__model")
-    inlines = [WorkItemInline, PartLineInline]
-
-
-admin.site.register([Part, StockItem, PartReservation, PartUsage, Payment, DiagnosticResult, OrderStatusHistory])
+@admin.register(Group)
+class GroupAdmin(DjangoGroupAdmin):
+    list_display = ("name",)
+    search_fields = ("name",)

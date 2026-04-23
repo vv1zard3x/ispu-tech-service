@@ -40,6 +40,17 @@
                 <span class="field-errors">{{ create_part_form.sku.errors }}</span>
             </p>
             <p>
+                {{ create_part_form.category.label_tag }}
+                {{ create_part_form.category }}
+                <span class="field-errors">{{ create_part_form.category.errors }}</span>
+            </p>
+            <p>
+                {{ create_part_form.compatible_models.label_tag }}
+                {{ create_part_form.compatible_models }}
+                <span class="field-help">{{ create_part_form.compatible_models.help_text }}</span>
+                <span class="field-errors">{{ create_part_form.compatible_models.errors }}</span>
+            </p>
+            <p>
                 {{ create_part_form.purchase_price.label_tag }}
                 {{ create_part_form.purchase_price }}
                 <span class="field-errors">{{ create_part_form.purchase_price.errors }}</span>

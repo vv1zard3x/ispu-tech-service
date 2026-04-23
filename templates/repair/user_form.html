@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}
+    {% if mode == "create" %}Новый пользователь
+    {% elif mode == "reset" %}Сброс пароля
+    {% else %}Пользователь: {{ target.username }}{% endif %}
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">
+            {% if mode == "create" %}Новый пользователь
+            {% elif mode == "reset" %}Сброс пароля для {{ target.username }}
+            {% else %}Пользователь {{ target.username }}{% endif %}
+        </h1>
+        <p class="muted">
+            {% if mode == "create" %}
+                Введите временный пароль — при первом входе система попросит его сменить.
+            {% elif mode == "reset" %}
+                Задайте новый временный пароль. Флаг принудительной смены будет выставлен автоматически.
+            {% else %}
+                Измените данные пользователя или сбросьте пароль.
+            {% endif %}
+        </p>
+    </div>
+    <a class="btn" href="{% url 'repair:user-list' %}">← К списку</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-panel">
+        {% for field in form %}
+            <p>
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+                <span class="field-errors">{{ field.errors }}</span>
+            </p>
+        {% endfor %}
+    </div>
+    <div class="btn-row">
+        <button type="submit" class="btn btn-primary">
+            {% if mode == "reset" %}Сбросить пароль{% else %}Сохранить{% endif %}
+        </button>
+        <a class="btn" href="{% url 'repair:user-list' %}">Отмена</a>
+    </div>
+</form>
+
+{% if mode == "edit" and reset_form %}
+    <h2 class="section-title">Сбросить пароль</h2>
+    <form method="post" action="{% url 'repair:user-reset-password' target.pk %}">
+        {% csrf_token %}
+        <div class="form-panel">
+            {% for field in reset_form %}
+                <p>
+                    {{ field.label_tag }}
+                    {{ field }}
+                    {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+                    <span class="field-errors">{{ field.errors }}</span>
+                </p>
+            {% endfor %}
+        </div>
+        <div class="btn-row">
+            <button type="submit" class="btn btn-danger">Сбросить пароль</button>
+        </div>
+    </form>
+{% endif %}
+{% endblock %}

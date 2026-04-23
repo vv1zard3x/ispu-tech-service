@@ -4,14 +4,18 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
+from django.utils.text import slugify
 
 
 class WorkOrderStatus(models.TextChoices):
     NEW = "new", "Новая"
     ASSIGNED = "assigned", "Назначена исполнителю"
     DIAGNOSED = "diagnosed", "Диагностика выполнена"
-    AWAITING_APPROVAL = "awaiting_approval", "Ожидает согласования"
-    APPROVED = "approved", "Согласовано"
+    AWAITING_PROCUREMENT = "awaiting_procurement", "Ждёт согласования закупки"
+    PROCUREMENT_REJECTED = "procurement_rejected", "Склад отказал в закупке"
+    UNREPAIRABLE = "unrepairable", "Невозможно починить"
+    AWAITING_APPROVAL = "awaiting_approval", "Ожидает согласования клиентом"
+    APPROVED = "approved", "Согласовано клиентом"
     REJECTED = "rejected", "Отказ от ремонта"
     IN_PROGRESS = "in_progress", "В работе"
     COMPLETED = "completed", "Ремонт выполнен"
@@ -21,6 +25,13 @@ class WorkOrderStatus(models.TextChoices):
 class PaymentKind(models.TextChoices):
     DIAGNOSTIC_ONLY = "diagnostic_only", "Только диагностика (отказ)"
     FULL_REPAIR = "full_repair", "Полный ремонт"
+    WAIVED = "waived", "Без оплаты"
+
+
+class ProcurementStatus(models.TextChoices):
+    PENDING = "pending", "Ожидает согласования"
+    APPROVED = "approved", "Одобрено"
+    REJECTED = "rejected", "Отклонено"
 
 
 class ReservationStatus(models.TextChoices):
@@ -43,29 +54,67 @@ class Customer(models.Model):
         return f"{self.name} ({self.phone})"
 
 
-class Device(models.Model):
-    customer = models.ForeignKey(
-        Customer,
-        on_delete=models.CASCADE,
-        related_name="devices",
-        verbose_name="Клиент",
+class DeviceCategory(models.Model):
+    name = models.CharField("Название", max_length=128, unique=True)
+    slug = models.SlugField("Слаг", max_length=140, unique=True, blank=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Категория устройств"
+        verbose_name_plural = "Категории устройств"
+
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            base = slugify(self.name, allow_unicode=False) or "category"
+            unique = base
+            counter = 1
+            while DeviceCategory.objects.filter(slug=unique).exclude(pk=self.pk).exists():
+                counter += 1
+                unique = f"{base}-{counter}"
+            self.slug = unique
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class DeviceModel(models.Model):
+    category = models.ForeignKey(
+        DeviceCategory,
+        on_delete=models.PROTECT,
+        related_name="models",
+        verbose_name="Категория",
     )
     brand = models.CharField("Бренд", max_length=128, blank=True)
     model = models.CharField("Модель", max_length=128)
-    serial_number = models.CharField("Серийный номер", max_length=128, blank=True)
-    issue_description = models.TextField("Описание неисправности")
 
     class Meta:
-        verbose_name = "Устройство"
-        verbose_name_plural = "Устройства"
+        ordering = ["category__name", "brand", "model"]
+        unique_together = [("category", "brand", "model")]
+        verbose_name = "Модель устройства"
+        verbose_name_plural = "Модели устройств"
 
     def __str__(self) -> str:
-        return f"{self.brand} {self.model}".strip()
+        label = f"{self.brand} {self.model}".strip()
+        return label or self.model
 
 
 class Part(models.Model):
     name = models.CharField("Наименование", max_length=255)
     sku = models.SlugField("Артикул", max_length=64, unique=True)
+    category = models.ForeignKey(
+        DeviceCategory,
+        on_delete=models.PROTECT,
+        related_name="parts",
+        verbose_name="Категория устройств",
+    )
+    compatible_models = models.ManyToManyField(
+        DeviceModel,
+        blank=True,
+        related_name="compatible_parts",
+        verbose_name="Совместимые модели",
+        help_text="Если пусто — совместимо со всеми моделями категории.",
+    )
     purchase_price = models.DecimalField(
         "Закупочная цена",
         max_digits=12,
@@ -107,6 +156,33 @@ class StockItem(models.Model):
         return f"{self.part.sku}: {self.quantity_on_hand}"
 
 
+class WorkCatalogItem(models.Model):
+    title = models.CharField("Наименование работы", max_length=255, unique=True)
+    default_labor_cost = models.DecimalField(
+        "Стоимость по умолчанию",
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal("0"),
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    category = models.ForeignKey(
+        DeviceCategory,
+        on_delete=models.SET_NULL,
+        related_name="work_catalog",
+        verbose_name="Категория",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["title"]
+        verbose_name = "Справочник работ"
+        verbose_name_plural = "Справочник работ"
+
+    def __str__(self) -> str:
+        return self.title
+
+
 class WorkOrder(models.Model):
     number = models.PositiveIntegerField(
         "Номер заявки",
@@ -121,17 +197,35 @@ class WorkOrder(models.Model):
         related_name="work_orders",
         verbose_name="Клиент",
     )
-    device = models.ForeignKey(
-        Device,
+    device_model = models.ForeignKey(
+        DeviceModel,
         on_delete=models.PROTECT,
         related_name="work_orders",
         verbose_name="Устройство",
     )
-    assigned_to = models.ForeignKey(
+    serial_number = models.CharField("Серийный номер", max_length=128, blank=True)
+    issue_description = models.TextField("Описание неисправности", blank=True)
+    manager = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        related_name="assigned_work_orders",
-        verbose_name="Исполнитель",
+        related_name="managed_work_orders",
+        verbose_name="Менеджер",
+        null=True,
+        blank=True,
+    )
+    technician = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="technician_work_orders",
+        verbose_name="Техник",
+        null=True,
+        blank=True,
+    )
+    warehouse_keeper = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="warehouse_work_orders",
+        verbose_name="Кладовщик",
         null=True,
         blank=True,
     )
@@ -196,6 +290,49 @@ class WorkOrder(models.Model):
     @property
     def is_overdue(self) -> bool:
         return bool(self.planned_deadline and timezone.now() > self.planned_deadline and self.status != WorkOrderStatus.CLOSED)
+
+    @property
+    def current_assignee(self):
+        """Кто сейчас должен действовать — аналог assignee в Jira."""
+        status = self.status
+        if status in {
+            WorkOrderStatus.ASSIGNED,
+            WorkOrderStatus.IN_PROGRESS,
+        }:
+            return self.technician
+        if status in {
+            WorkOrderStatus.AWAITING_PROCUREMENT,
+            WorkOrderStatus.APPROVED,
+        }:
+            return self.warehouse_keeper
+        if status in {
+            WorkOrderStatus.NEW,
+            WorkOrderStatus.DIAGNOSED,
+            WorkOrderStatus.AWAITING_APPROVAL,
+            WorkOrderStatus.PROCUREMENT_REJECTED,
+            WorkOrderStatus.UNREPAIRABLE,
+            WorkOrderStatus.REJECTED,
+            WorkOrderStatus.COMPLETED,
+        }:
+            return self.manager
+        return None
+
+    def current_assignee_role(self) -> str:
+        """Какой ролевой слот сейчас активен — для бейджа в UI."""
+        if self.current_assignee is None:
+            return ""
+        if self.current_assignee_id == getattr(self, "technician_id", None):
+            return "technician"
+        if self.current_assignee_id == getattr(self, "warehouse_keeper_id", None):
+            return "warehouse"
+        if self.current_assignee_id == getattr(self, "manager_id", None):
+            return "manager"
+        return ""
+
+    @property
+    def current_assignee_id(self):
+        value = self.current_assignee
+        return getattr(value, "id", None)
 
     def __str__(self) -> str:
         return f"Заявка #{self.number}"
@@ -375,3 +512,107 @@ class OrderStatusHistory(models.Model):
         ordering = ["changed_at"]
         verbose_name = "История статуса"
         verbose_name_plural = "История статусов"
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="profile",
+        verbose_name="Пользователь",
+    )
+    full_name = models.CharField("ФИО", max_length=255, blank=True)
+    phone = models.CharField("Телефон", max_length=32, blank=True)
+    require_password_change = models.BooleanField(
+        "Требуется смена пароля",
+        default=False,
+        help_text="Выставляется при создании/сбросе учётки. Снимается после смены.",
+    )
+
+    class Meta:
+        verbose_name = "Профиль пользователя"
+        verbose_name_plural = "Профили пользователей"
+
+    def __str__(self) -> str:
+        return self.full_name or self.user.get_username()
+
+
+def ensure_profile(user) -> "UserProfile":
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    return profile
+
+
+class ProcurementRequest(models.Model):
+    work_order = models.ForeignKey(
+        WorkOrder,
+        on_delete=models.CASCADE,
+        related_name="procurement_requests",
+        verbose_name="Заявка",
+    )
+    name = models.CharField("Наименование", max_length=255)
+    quantity = models.PositiveIntegerField("Количество")
+    note = models.TextField("Примечание", blank=True)
+    category = models.ForeignKey(
+        DeviceCategory,
+        on_delete=models.SET_NULL,
+        related_name="procurement_requests",
+        verbose_name="Категория устройств",
+        null=True,
+        blank=True,
+    )
+    status = models.CharField(
+        "Статус",
+        max_length=16,
+        choices=ProcurementStatus.choices,
+        default=ProcurementStatus.PENDING,
+    )
+    purchase_price = models.DecimalField(
+        "Закупочная цена",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    sale_price = models.DecimalField(
+        "Цена продажи",
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal("0"))],
+    )
+    resolution_note = models.CharField("Комментарий склада", max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_procurement_requests",
+        verbose_name="Запросил",
+    )
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    resolved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="resolved_procurement_requests",
+        verbose_name="Решил",
+    )
+    resulting_part = models.ForeignKey(
+        Part,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="procurement_origins",
+        verbose_name="Созданная деталь",
+    )
+
+    class Meta:
+        verbose_name = "Запрос на закупку"
+        verbose_name_plural = "Запросы на закупку"
+
+    def __str__(self) -> str:
+        return f"{self.name} x{self.quantity}"

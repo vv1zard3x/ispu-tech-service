@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Мой профиль{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Мой профиль</h1>
+        <p class="muted">Обновите контактные данные или смените пароль.</p>
+    </div>
+    <a class="btn" href="{% url 'repair:profile-password' %}">Сменить пароль</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-panel">
+        {% for field in form %}
+            <p>
+                {{ field.label_tag }}
+                {{ field }}
+                <span class="field-errors">{{ field.errors }}</span>
+            </p>
+        {% endfor %}
+    </div>
+    <div class="btn-row">
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+    </div>
+</form>
+{% endblock %}

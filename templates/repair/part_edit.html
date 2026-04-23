@@ -6,26 +6,14 @@
 <form method="post">
     {% csrf_token %}
     <div class="form-panel">
-        <p>
-            {{ form.name.label_tag }}
-            {{ form.name }}
-            <span class="field-errors">{{ form.name.errors }}</span>
-        </p>
-        <p>
-            {{ form.sku.label_tag }}
-            {{ form.sku }}
-            <span class="field-errors">{{ form.sku.errors }}</span>
-        </p>
-        <p>
-            {{ form.purchase_price.label_tag }}
-            {{ form.purchase_price }}
-            <span class="field-errors">{{ form.purchase_price.errors }}</span>
-        </p>
-        <p>
-            {{ form.sale_price.label_tag }}
-            {{ form.sale_price }}
-            <span class="field-errors">{{ form.sale_price.errors }}</span>
-        </p>
+        {% for field in form %}
+            <p>
+                {{ field.label_tag }}
+                {{ field }}
+                {% if field.help_text %}<span class="field-help">{{ field.help_text }}</span>{% endif %}
+                <span class="field-errors">{{ field.errors }}</span>
+            </p>
+        {% endfor %}
     </div>
     <div class="btn-row">
         <button class="btn btn-primary" type="submit">Сохранить</button>

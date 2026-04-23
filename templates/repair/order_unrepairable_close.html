@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Закрытие заявки{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Закрытие заявки №{{ order.number }}</h1>
+        <p class="muted">Заявка помечена как неремонтопригодная. Выберите, как закрыть её финансово.</p>
+    </div>
+    <a class="btn" href="{% url 'repair:order-detail' order.pk %}">← К заявке</a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-panel">
+        <p>
+            <strong>{{ form.charge_diagnostic.label }}</strong>
+            {{ form.charge_diagnostic }}
+        </p>
+        <p>
+            {{ form.note.label_tag }}
+            {{ form.note }}
+            <span class="field-errors">{{ form.note.errors }}</span>
+        </p>
+        <p class="muted">Сумма диагностики: {{ order.diagnosis_fee }} руб.</p>
+    </div>
+    <div class="btn-row">
+        <button class="btn btn-primary" type="submit">Закрыть заявку</button>
+        <a class="btn" href="{% url 'repair:order-detail' order.pk %}">Отмена</a>
+    </div>
+</form>
+{% endblock %}

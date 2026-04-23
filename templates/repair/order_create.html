@@ -7,10 +7,12 @@
         <p class="muted">Заполните данные клиента и устройства для запуска процесса ремонта.</p>
     </div>
 </div>
+
 <form method="post">
     {% csrf_token %}
     {{ form.non_field_errors }}
-    <h2 class="section-title">1) Клиент и устройство</h2>
+
+    <h2 class="section-title">1) Клиент</h2>
     <div class="form-panel">
         <p>
             {{ form.customer.label_tag }}
@@ -42,59 +44,86 @@
         </div>
     </div>
 
+    <h2 class="section-title">2) Устройство</h2>
     <div class="form-panel">
-        <p>
-            {{ form.device.label_tag }}
-            {{ form.device }}
-            <span class="field-errors">{{ form.device.errors }}</span>
-        </p>
-        <div class="toggle-row">
-            <input id="use_new_device" type="checkbox" name="use_new_device" data-toggle-target="#new_device_block" {% if use_new_device %}checked{% endif %}>
-            <label for="use_new_device">Добавить новое устройство (не из списка)</label>
-        </div>
-        <div id="new_device_block" class="toggle-target">
-            <div class="form-grid">
-                <p>
-                    {{ device_form.brand.label_tag }}
-                    {{ device_form.brand }}
-                    <span class="field-errors">{{ device_form.brand.errors }}</span>
-                </p>
-                <p>
-                    {{ device_form.model.label_tag }}
-                    {{ device_form.model }}
-                    <span class="field-errors">{{ device_form.model.errors }}</span>
-                </p>
-                <p>
-                    {{ device_form.serial_number.label_tag }}
-                    {{ device_form.serial_number }}
-                    <span class="field-errors">{{ device_form.serial_number.errors }}</span>
-                </p>
-            </div>
+        <div class="form-grid">
             <p>
-                {{ device_form.issue_description.label_tag }}
-                {{ device_form.issue_description }}
-                <span class="field-errors">{{ device_form.issue_description.errors }}</span>
+                {{ form.category.label_tag }}
+                {{ form.category }}
+                <span class="field-errors">{{ form.category.errors }}</span>
+            </p>
+            <p>
+                {{ form.device_model.label_tag }}
+                {{ form.device_model }}
+                <span class="field-help">Отфильтровано по выбранной категории.</span>
+                <span class="field-errors">{{ form.device_model.errors }}</span>
             </p>
         </div>
+
+        <div class="toggle-row">
+            <input id="use_new_category" type="checkbox" name="use_new_category" data-toggle-target="#new_category_block" {% if use_new_category %}checked{% endif %}>
+            <label for="use_new_category">Добавить новую категорию</label>
+        </div>
+        <div id="new_category_block" class="toggle-target">
+            <div class="form-grid">
+                <p>
+                    {{ category_form.name.label_tag }}
+                    {{ category_form.name }}
+                    <span class="field-errors">{{ category_form.name.errors }}</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="toggle-row">
+            <input id="use_new_model" type="checkbox" name="use_new_model" data-toggle-target="#new_model_block" {% if use_new_model %}checked{% endif %}>
+            <label for="use_new_model">Добавить новое устройство в выбранную категорию</label>
+        </div>
+        <div id="new_model_block" class="toggle-target">
+            <div class="form-grid">
+                <p>
+                    {{ device_model_form.brand.label_tag }}
+                    {{ device_model_form.brand }}
+                    <span class="field-errors">{{ device_model_form.brand.errors }}</span>
+                </p>
+                <p>
+                    {{ device_model_form.model.label_tag }}
+                    {{ device_model_form.model }}
+                    <span class="field-errors">{{ device_model_form.model.errors }}</span>
+                </p>
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <p>
+                {{ form.serial_number.label_tag }}
+                {{ form.serial_number }}
+                <span class="field-errors">{{ form.serial_number.errors }}</span>
+            </p>
+        </div>
+        <p>
+            {{ form.issue_description.label_tag }}
+            {{ form.issue_description }}
+            <span class="field-errors">{{ form.issue_description.errors }}</span>
+        </p>
     </div>
 
-    <h2 class="section-title">2) Параметры заявки</h2>
+    <h2 class="section-title">3) Параметры заявки</h2>
     <div class="form-panel">
         <div class="form-grid">
             <p>
                 {{ form.planned_deadline.label_tag }}
                 <span class="field-help">Сначала выберите дату, затем время дедлайна.</span>
-                <div class="datetime-modern">
-                    <div>
-                        <div class="field-title">Дата</div>
-                        {{ form.planned_deadline.subwidgets.0 }}
-                    </div>
-                    <div>
-                        <div class="field-title">Время</div>
-                        {{ form.planned_deadline.subwidgets.1 }}
-                    </div>
+            <div class="datetime-modern">
+                <div>
+                    <div class="field-title">Дата</div>
+                    {{ form.planned_deadline.subwidgets.0 }}
                 </div>
-                <span class="field-errors">{{ form.planned_deadline.errors }}</span>
+                <div>
+                    <div class="field-title">Время</div>
+                    {{ form.planned_deadline.subwidgets.1 }}
+                </div>
+            </div>
+            <span class="field-errors">{{ form.planned_deadline.errors }}</span>
             </p>
             <p>
                 {{ form.diagnosis_fee.label_tag }}
@@ -114,4 +143,47 @@
         <a class="btn" href="{% url 'repair:order-list' %}">Отмена</a>
     </div>
 </form>
+
+{{ categories_json|json_script:"categories-data" }}
+
+<script>
+(function () {
+    const data = JSON.parse(document.getElementById("categories-data").textContent);
+    const byId = new Map(data.map(c => [String(c.id), c]));
+    const categorySelect = document.getElementById("id_order-category");
+    const modelSelect = document.getElementById("id_order-device_model");
+    if (!categorySelect || !modelSelect) return;
+
+    function refreshModels(preserveSelection) {
+        const selectedCategory = categorySelect.value;
+        const previouslySelected = modelSelect.value;
+        modelSelect.innerHTML = "";
+
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = selectedCategory ? "Выберите устройство" : "Сначала выберите категорию";
+        modelSelect.appendChild(placeholder);
+
+        if (!selectedCategory) {
+            modelSelect.disabled = true;
+            return;
+        }
+        modelSelect.disabled = false;
+        const cat = byId.get(String(selectedCategory));
+        if (!cat) return;
+        cat.models.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = String(m.id);
+            opt.textContent = m.label;
+            modelSelect.appendChild(opt);
+        });
+        if (preserveSelection && previouslySelected) {
+            modelSelect.value = previouslySelected;
+        }
+    }
+
+    categorySelect.addEventListener("change", () => refreshModels(false));
+    refreshModels(true);
+})();
+</script>
 {% endblock %}

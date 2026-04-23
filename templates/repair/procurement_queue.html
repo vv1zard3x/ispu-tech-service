@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Закупка{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Заявки на закупку</h1>
+        <p class="muted">Требуется решение кладовщика: согласовать закупку и выставить цены либо отказать.</p>
+    </div>
+</div>
+
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>№</th><th>Клиент</th><th>Устройство</th><th>Позиций</th><th></th></tr></thead>
+        <tbody>
+        {% for order in orders %}
+            <tr>
+                <td>#{{ order.number }}</td>
+                <td>{{ order.customer.name }}</td>
+                <td>{{ order.device_model }}</td>
+                <td>{{ order.procurement_requests.count }}</td>
+                <td><a class="btn btn-primary" href="{% url 'repair:order-procurement-approve' order.pk %}">Открыть</a></td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="5">Нет заявок, ожидающих закупки.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -10,13 +10,67 @@
     <span class="badge badge-blue">{{ order.get_status_display }}</span>
 </div>
 
-<div class="form-grid">
-    <p><strong>Клиент:</strong><br>{{ order.customer.name }}<br><span class="muted">{{ order.customer.phone }}</span></p>
-    <p><strong>Устройство:</strong><br>{{ order.device }}</p>
-    <p><strong>Исполнитель:</strong><br>{{ order.assigned_to|default:"не назначен" }}</p>
-    <p><strong>Плановый срок:</strong><br>{{ order.planned_deadline|default:"не задан" }}</p>
-    <p><strong>Диагностика:</strong><br>{{ order.diagnosis_fee }} руб.</p>
-    <p><strong>Итог ремонта:</strong><br>{{ order.full_repair_total }} руб.</p>
+<div class="form-panel">
+    <div class="form-grid">
+        <p><strong>Клиент:</strong><br>{{ order.customer.name }}<br><span class="muted">{{ order.customer.phone }}</span></p>
+        <p>
+            <strong>Устройство:</strong><br>{{ order.device_model }}<br>
+            <span class="muted">Категория: {{ order.device_model.category.name }}{% if order.serial_number %} · S/N {{ order.serial_number }}{% endif %}</span>
+        </p>
+        <p><strong>Плановый срок:</strong><br>{{ order.planned_deadline|default:"не задан" }}</p>
+    </div>
+    {% if order.issue_description %}
+        <p class="muted"><strong>Неисправность по словам клиента:</strong> {{ order.issue_description }}</p>
+    {% endif %}
+</div>
+
+<div class="form-panel">
+    <h2 class="section-title" style="margin-top: 0;">Команда заявки</h2>
+    <div class="form-grid">
+        <p>
+            <strong>Менеджер:</strong><br>
+            {% if order.manager %}{{ order.manager.username }}{% else %}<span class="muted">не назначен</span>{% endif %}
+            {% if order.current_assignee_id == order.manager_id and order.manager_id %}
+                <br><span class="badge badge-orange">сейчас за ним</span>
+            {% endif %}
+        </p>
+        <p>
+            <strong>Техник:</strong><br>
+            {% if order.technician %}{{ order.technician.username }}{% else %}<span class="muted">не назначен</span>{% endif %}
+            {% if order.current_assignee_id == order.technician_id and order.technician_id %}
+                <br><span class="badge badge-orange">сейчас за ним</span>
+            {% endif %}
+        </p>
+        <p>
+            <strong>Кладовщик:</strong><br>
+            {% if order.warehouse_keeper %}{{ order.warehouse_keeper.username }}{% else %}<span class="muted">не назначен</span>{% endif %}
+            {% if order.current_assignee_id == order.warehouse_keeper_id and order.warehouse_keeper_id %}
+                <br><span class="badge badge-orange">сейчас за ним</span>
+            {% endif %}
+        </p>
+    </div>
+
+    {% if user|has_role:"manager" %}
+        <div class="btn-row" style="margin-top: 8px;">
+            <a class="btn" href="{% url 'repair:order-reassign' order.pk %}">Переназначить роли</a>
+            {% if order.manager_id != user.id %}
+                <form method="post" action="{% url 'repair:order-take-over' order.pk %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button class="btn btn-secondary" type="submit">Забрать заявку</button>
+                </form>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<div class="form-panel">
+    <h2 class="section-title" style="margin-top: 0;">Финансы</h2>
+    <div class="form-grid">
+        <p><strong>Диагностика:</strong> {{ order.diagnosis_fee }} руб.</p>
+        <p><strong>Работы:</strong> {{ order.labor_total }} руб.</p>
+        <p><strong>Детали:</strong> {{ order.parts_total }} руб.</p>
+        <p><strong>Итог ремонта:</strong> {{ order.full_repair_total }} руб.</p>
+    </div>
 </div>
 
 <div class="btn-row spacer">
@@ -26,14 +80,23 @@
     {% if user|has_role:"technician" and order.status == "assigned" %}
         <a class="btn" href="{% url 'repair:order-diagnostics' order.pk %}">Диагностика</a>
     {% endif %}
+    {% if user|has_role:"warehouse" and order.status == "awaiting_procurement" %}
+        <a class="btn btn-primary" href="{% url 'repair:order-procurement-approve' order.pk %}">Согласовать закупку</a>
+    {% endif %}
+    {% if user|has_role:"manager" and order.status == "procurement_rejected" %}
+        <a class="btn btn-danger" href="{% url 'repair:order-unrepairable' order.pk %}">Не починим</a>
+    {% endif %}
     {% if user|has_role:"manager" and order.status == "awaiting_approval" %}
-        <a class="btn" href="{% url 'repair:order-approval' order.pk %}">Согласование</a>
+        <a class="btn" href="{% url 'repair:order-approval' order.pk %}">Согласование с клиентом</a>
     {% endif %}
     {% if user|has_role:"warehouse" and order.status == "approved" %}
         <a class="btn" href="{% url 'repair:order-reserve' order.pk %}">Резерв со склада</a>
     {% endif %}
     {% if user|has_role:"technician" and order.status == "in_progress" %}
         <a class="btn" href="{% url 'repair:order-complete' order.pk %}">Завершить ремонт</a>
+    {% endif %}
+    {% if user|has_role:"manager" and order.status == "unrepairable" %}
+        <a class="btn btn-primary" href="{% url 'repair:order-unrepairable-close' order.pk %}">Закрыть заявку</a>
     {% endif %}
     {% if user|has_role:"manager" and order.status == "rejected" or user|has_role:"manager" and order.status == "completed" %}
         <a class="btn btn-primary" href="{% url 'repair:order-payment' order.pk %}">Оплата</a>
@@ -42,6 +105,31 @@
 
 <h2 class="spacer">Диагностика</h2>
 <p>{% if order.diagnostic %}{{ order.diagnostic.findings }}{% else %}<span class="muted">Еще не заполнена.</span>{% endif %}</p>
+
+{% if order.procurement_requests.exists %}
+<h2 class="spacer">Запросы на закупку</h2>
+<div class="table-wrap">
+    <table>
+        <thead><tr><th>Позиция</th><th>Кол-во</th><th>Статус</th><th>Закуп</th><th>Продажа</th><th>Комментарий</th></tr></thead>
+        <tbody>
+        {% for req in order.procurement_requests.all %}
+            <tr>
+                <td>{{ req.name }}{% if req.note %}<br><span class="muted">{{ req.note }}</span>{% endif %}</td>
+                <td>{{ req.quantity }}</td>
+                <td>
+                    {% if req.status == "pending" %}<span class="badge badge-orange">ожидает</span>
+                    {% elif req.status == "approved" %}<span class="badge badge-green">одобрено</span>
+                    {% else %}<span class="badge badge-red">отклонено</span>{% endif %}
+                </td>
+                <td>{{ req.purchase_price|default:"-" }}</td>
+                <td>{{ req.sale_price|default:"-" }}</td>
+                <td>{{ req.resolution_note|default:"-" }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 
 <h2 class="spacer">Работы</h2>
 <div class="table-wrap">
@@ -60,7 +148,7 @@
 <h2 class="spacer">Детали</h2>
 <div class="table-wrap">
     <table>
-        <thead><tr><th>Деталь</th><th>Кол-во</th><th>Оценка (закупка)</th><th>Сумма</th></tr></thead>
+        <thead><tr><th>Деталь</th><th>Кол-во</th><th>Оценка</th><th>Сумма</th></tr></thead>
         <tbody>
         {% for line in order.part_lines.all %}
             <tr><td>{{ line.part.name }}</td><td>{{ line.quantity }}</td><td>{{ line.unit_price }}</td><td>{{ line.total }}</td></tr>

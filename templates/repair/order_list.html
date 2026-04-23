@@ -47,20 +47,21 @@
 <div class="table-wrap spacer">
     <table>
         <thead>
-        <tr><th>№</th><th>Клиент</th><th>Устройство</th><th>Исполнитель</th><th>Статус</th><th>Срок</th></tr>
+        <tr><th>№</th><th>Клиент</th><th>Устройство</th><th>Техник</th><th>Сейчас у</th><th>Статус</th><th>Срок</th></tr>
         </thead>
         <tbody>
         {% for order in orders %}
             <tr>
                 <td><a href="{% url 'repair:order-detail' order.pk %}">#{{ order.number }}</a></td>
                 <td>{{ order.customer.name }}</td>
-                <td>{{ order.device }}</td>
-                <td>{{ order.assigned_to|default:"-" }}</td>
+                <td>{{ order.device_model }}</td>
+                <td>{{ order.technician|default:"-" }}</td>
+                <td>{{ order.current_assignee|default:"-" }}</td>
                 <td><span class="badge badge-blue">{{ order.get_status_display }}</span></td>
                 <td>{% if order.planned_deadline %}{{ order.planned_deadline|date:"d.m.Y H:i" }}{% else %}-{% endif %}</td>
             </tr>
         {% empty %}
-            <tr><td colspan="6">Ничего не найдено.</td></tr>
+            <tr><td colspan="7">Ничего не найдено.</td></tr>
         {% endfor %}
         </tbody>
     </table>

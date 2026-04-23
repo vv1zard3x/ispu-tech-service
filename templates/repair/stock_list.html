@@ -11,13 +11,14 @@
 <div class="table-wrap">
     <table>
         <thead>
-        <tr><th>Артикул</th><th>Деталь</th><th>Закупочная</th><th>Продажа</th><th>Остаток</th><th></th></tr>
+        <tr><th>Артикул</th><th>Деталь</th><th>Категория</th><th>Закупочная</th><th>Продажа</th><th>Остаток</th><th></th></tr>
         </thead>
         <tbody>
         {% for item in items %}
             <tr>
                 <td><strong>{{ item.part.sku }}</strong></td>
                 <td>{{ item.part.name }}</td>
+                <td>{{ item.part.category.name }}</td>
                 <td>{{ item.part.purchase_price }} руб.</td>
                 <td>{{ item.part.sale_price }} руб.</td>
                 <td>
@@ -30,7 +31,7 @@
                 <td><a class="btn" href="{% url 'repair:part-edit' item.part.pk %}">Редактировать</a></td>
             </tr>
         {% empty %}
-            <tr><td colspan="6">Склад пока пуст.</td></tr>
+            <tr><td colspan="7">Склад пока пуст.</td></tr>
         {% endfor %}
         </tbody>
     </table>
