@@ -15,6 +15,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RunSQL(
+            "DELETE FROM repair_workorder WHERE device_model_id NOT IN (SELECT id FROM repair_devicemodel)",
+            reverse_sql=migrations.RunSQL.noop,
+        ),
         migrations.RemoveField(
             model_name='workorder',
             name='assigned_to',
